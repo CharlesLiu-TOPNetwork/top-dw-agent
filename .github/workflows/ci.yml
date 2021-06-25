@@ -30,4 +30,3 @@ jobs:
         with:
           name: main
           path: dist/main
-          retention-days: 1
