@@ -19,10 +19,7 @@ jobs:
 
       - name: Clone
         run: |
-            if [[ ! -d .git ]];then git init && git remote add origin git@github.com:Alipipe/top-dw-agent.git; fi
-            git fetch origin
-            git clean -xdf && git checkout .
-            git checkout -b master --track origin/master
+            if [[ ! -d .git ]];then git init && git remote add origin git@github.com:Alipipe/top-dw-agent.git && git fetch origin && git checkout -b master --track origin/master; else git clean -xdf && git checkout .; fi
             git pull
 
       - name: Build
