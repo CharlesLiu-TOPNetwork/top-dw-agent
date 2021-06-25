@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source /etc/profile
+
 PRO_DIR=$(pwd)
 
 echo ${PRO_DIR}
