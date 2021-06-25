@@ -20,8 +20,9 @@ jobs:
       - name: Clone
         run: |
             git init
-            git remote add origin git@github.com:Alipipe/top-dw-agent.git
+            if [[ $? -eq 0 ]];then git remote add origin git@github.com:Alipipe/top-dw-agent.git; fi
             git fetch origin
+            git clean -xdf && git checkout .
             git checkout -b master --track origin/master
             git pull
 
