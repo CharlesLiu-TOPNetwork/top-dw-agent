@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: test-206
+
+    steps:
+      - uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.TEST206 }}
+
+      - name: Clone
+        run: |
+            if [[ ! -d .git ]];then git init && git remote add origin git@github.com:Alipipe/top-dw-agent.git && git fetch origin && git checkout -b master --track origin/master; else git clean -xdf && git checkout .; fi
+            git pull
+
+      - name: Build
+        run: bash build.sh
+
+      - name: Archive
+        uses: actions/upload-artifact@v2
+        with:
+          name: main
+          path: dist/main
