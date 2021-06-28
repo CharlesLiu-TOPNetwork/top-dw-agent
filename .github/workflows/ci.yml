@@ -23,7 +23,7 @@ jobs:
             git pull
 
       - name: Build
-        run: bash .github/scripts/build.sh
+        run: bash build.sh
 
       - name: Archive
         uses: actions/upload-artifact@v2

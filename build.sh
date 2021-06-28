@@ -10,4 +10,5 @@ sed -i "s#project_home#${PRO_DIR}#g" main.spec
 
 rm -f dist/main && pyinstaller --onefile main.spec
 
+md5sum dist/main
 echo "finish"
