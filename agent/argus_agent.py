@@ -129,7 +129,7 @@ class Log_Filter:
                     metrics_info = {
                         'env': alarm_database_name,
                         'public_ip': gl.get_ip(),
-                        'send_timestamp': int(time.time()),
+                        'send_timestamp': int(int(time.time())/180)*180,
                         'category': category,
                         'tag': tag,
                     }
