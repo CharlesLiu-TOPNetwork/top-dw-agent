@@ -63,8 +63,8 @@ def put_alarmq(alarm_payload):
     global ALARMQ
     try:
         ALARMQ.put(alarm_payload, block=True, timeout=2)
-        slog.info("put send_queue:{0} size:{1}, item:{2}".format(
-            ALARMQ, ALARMQ.qsize(), json.dumps(alarm_payload)))
+        # slog.info("put send_queue:{0} size:{1}, item:{2}".format(
+        #     ALARMQ, ALARMQ.qsize(), json.dumps(alarm_payload)))
     except Exception as e:
         slog.warn("queue full, drop alarm_payload")
         return False
@@ -225,8 +225,8 @@ class log_monitor:
                 wait_num += 1
                 log_handle.seek(cur_pos)  # go to cur_pos from head
                 time.sleep(1)
-                slog.info("sleep 1 s, cur_pos: {0}".format(cur_pos))
-                print_queue()
+                # slog.info("sleep 1 s, cur_pos: {0}".format(cur_pos))
+                # print_queue()
                 if wait_num > 4:
                     slog.debug("file: {0} done watch, size: {1}".format(
                         filename, cur_pos))
@@ -272,13 +272,13 @@ def do_alarm(alarm_list):
     }
     my_data['data'] = alarm_list
     my_data = json.dumps(my_data)
-    slog.info("do_alarm: {0}".format(my_data))
+    # slog.info("do_alarm: {0}".format(my_data))
     try:
         #res = requests.post(url, headers = my_headers,data = my_data, timeout = 5)
         res = mysession.post(url, headers=my_headers, data=my_data, timeout=5)
         if res.status_code == 200:
             if res.json().get('status') == 0:
-                slog.info("send alarm ok, response: {0}".format(res.text))
+                # slog.info("send alarm ok, response: {0}".format(res.text))
                 return True
             else:
                 slog.warn("send alarm fail, response: {0}".format(res.text))
@@ -297,14 +297,14 @@ def consumer_alarm():
     alarm_list = []
     while True:
         try:
-            slog.info("consumer thread:{0} send_queue:{1} size:{2}".format(
-                th_name, ALARMQ, ALARMQ.qsize()))
+            # slog.info("consumer thread:{0} send_queue:{1} size:{2}".format(
+            #     th_name, ALARMQ, ALARMQ.qsize()))
             while not ALARMQ.empty():
                 alarm_payload = ALARMQ.get()
                 alarm_list.append(alarm_payload)
 
                 if len(alarm_list) >= alarm_pack_num:
-                    slog.info("alarm do_alarm")
+                    # slog.info("alarm do_alarm")
                     do_alarm(alarm_list)
                     alarm_list.clear()
 
@@ -321,14 +321,14 @@ def consumer_alarm_high():
     alarm_list = []
     while True:
         try:
-            slog.info("consumer thread:{0} recv_queue:{1} size:{2}".format(
-                th_name, ALARMQ_HIGH, ALARMQ_HIGH.qsize()))
+            # slog.info("consumer thread:{0} recv_queue:{1} size:{2}".format(
+            #     th_name, ALARMQ_HIGH, ALARMQ_HIGH.qsize()))
             while not ALARMQ_HIGH.empty():
                 alarm_payload = ALARMQ_HIGH.get()
                 alarm_list.append(alarm_payload)
 
                 if len(alarm_list) >= alarm_pack_num:
-                    slog.info("alarm_high do_alarm")
+                    # slog.info("alarm_high do_alarm")
                     if not do_alarm(alarm_list):
                         slog.warn("alarm_high send failed, put in queue again")
                         for item in alarm_list:

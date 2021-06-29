@@ -9,11 +9,6 @@ if sys.version_info.major != 3:
 import argparse
 import setproctitle
 
-import os
-project_path = os.path.dirname(os.path.abspath(__file__))
-log_path = os.path.join(project_path, "log/topargus-agent.log")
-
-os.environ['LOG_PATH'] =  log_path 
 import common.slogging as slogging
 
 if __name__ == "__main__":

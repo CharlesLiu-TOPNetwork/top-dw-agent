@@ -6,14 +6,8 @@ import time
 import threading
 import common.config as sconfig
 
-if not os.getenv('LOG_PATH'):
-    print("ENV LOG_PATH invalid")
-    sys.exit(2)
 
-log_path = os.getenv('LOG_PATH') 
-if not os.path.exists(os.path.dirname(log_path)):
-    os.mkdir(os.path.dirname(log_path))
-
+log_path = "/tmp/topargus-agent.log"
 slog = logging.getLogger(log_path)
 
 if sconfig.LOGLEVEL == 'debug':
@@ -37,23 +31,13 @@ else:
 '''
 fmt = logging.Formatter('[%(asctime)s][%(process)d][%(thread)d][%(levelname)s][%(filename)s][%(funcName)s][%(lineno)d]:%(message)s', '%Y-%m-%d %H:%M:%S')
 
-#设置CMD日志
-sh = logging.StreamHandler()
-sh.setFormatter(fmt)
-sh.setLevel(logging.WARNING)
 #设置文件日志
 fh = logging.FileHandler(log_path)
 fh.setFormatter(fmt)
 fh.setLevel(logging.DEBUG)
-slog.addHandler(sh)
 slog.addHandler(fh)
 
 def log_monitor():
-    log_path = os.getenv('LOG_PATH')
-    if not log_path:
-        print("env LOG_PATH invlaid")
-        return
-
     slog.info("log monitor begin")
     # just wait
     time.sleep(60 * 1)
