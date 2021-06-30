@@ -114,15 +114,17 @@ class Log_Filter:
                 category, tag, type, content = result[0]
                 # XMETRICS_PACKET_INFO
                 if type == "real_time":
+                    return True
+                    # tmp disable
                     # print(category, tag, content)
-                    if category in self.metrics_category and tag in self.metrics_category[category]:
-                        rule = self.metrics_rule_map[category][tag]
-                        ret, payload = rule(content)
-                        if ret:
+                    # if category in self.metrics_category and tag in self.metrics_category[category]:
+                    #     rule = self.metrics_rule_map[category][tag]
+                    #     ret, payload = rule(content)
+                    #     if ret:
                             # slog.info("{0} {1} {2}".format(category, tag, content))
                             # print(payload)
                             # put_alarmq(payload)
-                            return True
+                            # return True
                 # XMETRICS_COUNTER/TIMER/FLOW
                 elif type == "flow" or type == "timer" or type == "counter":
                     # print(category, tag, content)
@@ -203,8 +205,7 @@ class log_monitor:
     def watchlog(self, filename, offset=0):
         try:
             #log_handle = open(filename, 'r',encoding="utf-8", errors='replace')
-            log_handle = open(filename, 'r', encoding="utf-8")
-            #log_handle = open(filename, 'r',encoding="latin-1")
+            log_handle = open(filename, 'r', encoding="utf-8", errors='ignore')
         except Exception as e:
             slog.warn("open file exception: {0}".format(e))
             return offset
@@ -219,7 +220,7 @@ class log_monitor:
                 line = log_handle.readline()
             except Exception as e:
                 slog.warn(
-                    "readline exception:{0}, cur_pos:{1}".format(e, cur_pos))
+                    "readline exception:{0}, cur_pos:{1}, time:{2}".format(e, cur_pos, int(time.time())))
                 continue
             if not line:
                 wait_num += 1
@@ -239,7 +240,7 @@ class log_monitor:
         if not os.path.exists(filename):
             return cur_pos
         try:
-            new_log_handle = open(filename, 'r', encoding="latin-1")
+            new_log_handle = open(filename, 'r', encoding="utf-8", errors='ignore')
         except Exception as e:
             return cur_pos
 
