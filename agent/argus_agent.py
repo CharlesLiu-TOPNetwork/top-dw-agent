@@ -30,7 +30,7 @@ ALARMQ_HIGH = queue.Queue(2000)
 
 gconfig = {
     'global_sample_rate': 1000,  # sample_rate%。
-    'alarm_pack_num': 2,   # upload alarm size one time
+    'alarm_pack_num': 4,   # upload alarm size one time
     'config_update_time': 5 * 60,  # 5 min
 }
 # keep all nodeid existing: key is node_id, value is timestamp (ms)
@@ -114,17 +114,16 @@ class Log_Filter:
                 category, tag, type, content = result[0]
                 # XMETRICS_PACKET_INFO
                 if type == "real_time":
-                    return True
-                    # tmp disable
+                    # return True
                     # print(category, tag, content)
-                    # if category in self.metrics_category and tag in self.metrics_category[category]:
-                    #     rule = self.metrics_rule_map[category][tag]
-                    #     ret, payload = rule(content)
-                    #     if ret:
+                    if category in self.metrics_category and tag in self.metrics_category[category]:
+                        rule = self.metrics_rule_map[category][tag]
+                        ret, payload = rule(content,alarm_database_name)
+                        if ret:
                             # slog.info("{0} {1} {2}".format(category, tag, content))
                             # print(payload)
-                            # put_alarmq(payload)
-                            # return True
+                            put_alarmq(payload)
+                            return True
                 # XMETRICS_COUNTER/TIMER/FLOW
                 elif type == "flow" or type == "timer" or type == "counter":
                     # print(category, tag, content)
@@ -141,7 +140,7 @@ class Log_Filter:
                     payload = {
                         "alarm_type": "metrics_"+type, "packet": metrics_info
                     }
-                    print(payload)
+                    # print(payload)
                     put_alarmq(payload)
 
                     return True
@@ -184,10 +183,13 @@ class log_monitor:
             #     "wrouterrecv_info": self.callbackhub.p2pbroadcast_message_recv_rule,
             #     "wroutersend_info": self.callbackhub.p2pbroadcast_message_send_rule
             # },
-            "p2pnormal": {
-                "vhostrecv_info": self.callbackhub.p2pbroadcast_message_recv_rule,
-                "wrouterrecv_info": self.callbackhub.p2pbroadcast_message_recv_rule,
-                "wroutersend_info": self.callbackhub.p2pbroadcast_message_send_rule
+            # "p2pnormal": {
+            #     "vhostrecv_info": self.callbackhub.p2pbroadcast_message_recv_rule,
+            #     "wrouterrecv_info": self.callbackhub.p2pbroadcast_message_recv_rule,
+            #     "wroutersend_info": self.callbackhub.p2pbroadcast_message_send_rule
+            # },
+            "vnode":{
+                "status": self.callbackhub.vnode_status_rule,
             }
         }
         self.log_filter = Log_Filter(metrics_rule_map)

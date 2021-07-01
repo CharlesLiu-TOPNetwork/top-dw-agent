@@ -199,6 +199,23 @@ class CallBackHub():
 
         return False, {}
 
+    def vnode_status_rule(self,content:str,databasename:str):
+        json_content = json.loads(content)
+        packet_info = {}
+        
+        packet_info["timestamp"] = int(int(time.time())/60)*60
+        packet_info["env"] = databasename
+        packet_info["public_ip"] = gl.get_ip()
+        packet_info["rec"] = json_content["rec"]
+        packet_info["zec"] = json_content["zec"]
+        packet_info["auditor"] = json_content["auditor"]
+        packet_info["validator"] = json_content["validator"]
+        packet_info["archive"] = json_content["archive"]
+        packet_info["edge"] = json_content["edge"]
+        payload = {"alarm_type":"vnode_status","packet":packet_info}
+
+        return True,payload
+
     def default_metrics_rule(self, content: str):
         # slog.info("default")
         # gl.get_value()
