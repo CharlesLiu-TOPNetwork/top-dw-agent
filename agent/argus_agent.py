@@ -120,7 +120,8 @@ class Log_Filter:
                         rule = self.metrics_rule_map[category][tag]
                         ret, payload = rule(content,alarm_database_name)
                         if ret:
-                            # slog.info("{0} {1} {2}".format(category, tag, content))
+                            # slog.info("{0} {1} {2} {3}".format(
+                            #     category, tag, content, payload))
                             # print(payload)
                             put_alarmq(payload)
                             return True
@@ -190,7 +191,10 @@ class log_monitor:
             # },
             "vnode":{
                 "status": self.callbackhub.vnode_status_rule,
-            }
+            },
+            "xsync":{
+                "interval": self.callbackhub.sync_interval_rule,
+            },
         }
         self.log_filter = Log_Filter(metrics_rule_map)
 

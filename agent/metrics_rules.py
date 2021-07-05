@@ -13,6 +13,13 @@ class CallBackHub():
         self.rate_level = 3
         self.rate_num = (2**self.rate_level - 1) << 2
 
+        # xsync
+        self.xsync_interval = 180
+        self.xsync_cache = {
+            "fast":{},
+            "full":{},
+        }
+
         self.msg_recv_cache = {}
         for num in range(self.alarm_type_queue_num):
             self.msg_recv_cache[num] = {}
@@ -215,6 +222,53 @@ class CallBackHub():
         payload = {"alarm_type":"vnode_status","packet":packet_info}
 
         return True,payload
+
+    def sync_interval_rule(self,content:str,databasename:str):
+        json_content = json.loads(content)
+        sync_mod = json_content["mode"]
+        table_address = json_content["table_address"]
+        '''
+        {
+            "mode": "full",
+            "table_address": "Ta00013T7BKn5pP8Zi3K5z2Z5BQuSXTf5u37Se79x@0",
+            "self_min": 0,
+            "self_max": 16,
+            "peer_min": 0,
+            "peer_max": 16
+        }
+        '''
+        if table_address not in self.xsync_cache[sync_mod]:
+            self.xsync_cache[sync_mod][table_address] = {
+                "send_timestamp" : int(int(time.time())/self.xsync_interval)*self.xsync_interval,
+                "self_min":0,
+                "self_max":0,
+                "peer_min":0,
+                "peer_max":0,
+            }
+
+        self.xsync_cache[sync_mod][table_address]["self_min"] = json_content["self_min"]
+        self.xsync_cache[sync_mod][table_address]["self_max"] = json_content["self_max"]
+        self.xsync_cache[sync_mod][table_address]["peer_min"] = json_content["peer_min"]
+        self.xsync_cache[sync_mod][table_address]["peer_max"] = json_content["peer_max"]
+
+        if int(time.time()) - self.xsync_cache[sync_mod][table_address]["send_timestamp"] < self.xsync_interval : 
+            # print(int(time.time()), sync_mod, table_address, self.xsync_cache[sync_mod][table_address])
+            return False,{}
+        else:
+            packet_info = {}
+            packet_info["env"] = databasename
+            packet_info["public_ip"] = gl.get_ip()
+            packet_info["sync_mod"] = sync_mod
+            packet_info["table_address"] = table_address
+            packet_info["send_timestamp"] = self.xsync_cache[sync_mod][table_address]["send_timestamp"]
+            packet_info["self_min"] = self.xsync_cache[sync_mod][table_address]["self_min"]
+            packet_info["self_max"] = self.xsync_cache[sync_mod][table_address]["self_max"]
+            packet_info["peer_min"] = self.xsync_cache[sync_mod][table_address]["peer_min"]
+            packet_info["peer_max"] = self.xsync_cache[sync_mod][table_address]["peer_max"]
+
+            payload = {"alarm_type":"xsync_interval","packet":packet_info}
+            self.xsync_cache[sync_mod][table_address]["send_timestamp"] = int(int(time.time())/self.xsync_interval)*self.xsync_interval
+            return True,payload
 
     def default_metrics_rule(self, content: str):
         # slog.info("default")
