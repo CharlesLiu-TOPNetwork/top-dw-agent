@@ -204,15 +204,15 @@ class CallBackHub():
                     slog.info("payload {0}".format(payload))
                     return True, payload
 
-        return False, {}
+        return False, ""
 
     def vnode_status_rule(self,content:str,databasename:str):
         json_content = json.loads(content)
         packet_info = {}
         
         packet_info["timestamp"] = int(int(time.time())/60)*60
-        packet_info["env"] = databasename
-        packet_info["public_ip"] = gl.get_ip()
+        # packet_info["env"] = databasename
+        # packet_info["public_ip"] = gl.get_ip()
         packet_info["rec"] = json_content["rec"]
         packet_info["zec"] = json_content["zec"]
         packet_info["auditor"] = json_content["auditor"]
@@ -221,7 +221,7 @@ class CallBackHub():
         packet_info["edge"] = json_content["edge"]
         payload = {"alarm_type":"vnode_status","packet":packet_info}
 
-        return True,payload
+        return True,json.dumps(payload)
 
     def sync_interval_rule(self,content:str,databasename:str):
         json_content = json.loads(content)
@@ -253,11 +253,11 @@ class CallBackHub():
 
         if int(time.time()) - self.xsync_cache[sync_mod][table_address]["send_timestamp"] < self.xsync_interval : 
             # print(int(time.time()), sync_mod, table_address, self.xsync_cache[sync_mod][table_address])
-            return False,{}
+            return False,""
         else:
             packet_info = {}
-            packet_info["env"] = databasename
-            packet_info["public_ip"] = gl.get_ip()
+            # packet_info["env"] = databasename
+            # packet_info["public_ip"] = gl.get_ip()
             packet_info["sync_mod"] = sync_mod
             packet_info["table_address"] = table_address
             packet_info["send_timestamp"] = self.xsync_cache[sync_mod][table_address]["send_timestamp"]
@@ -268,7 +268,7 @@ class CallBackHub():
 
             payload = {"alarm_type":"xsync_interval","packet":packet_info}
             self.xsync_cache[sync_mod][table_address]["send_timestamp"] = int(int(time.time())/self.xsync_interval)*self.xsync_interval
-            return True,payload
+            return True,json.dumps(payload)
 
     def default_metrics_rule(self, content: str):
         # slog.info("default")

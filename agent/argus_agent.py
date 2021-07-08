@@ -38,7 +38,9 @@ NodeIdMap = {}
 mark_down_flag = False
 
 alarm_database_name = 'test_database_name'
-alarm_proxy_host = '127.0.0.1:19090'
+alarm_proxy_host = '127.0.0.1:9090'
+# top-dw-host = '142.93.126.168:9010'
+# host = '161.35.114.185:9010'
 mysession = requests.Session()
 mypublic_ip_port = '127.0.0.1:800'
 my_root_id = ''
@@ -114,8 +116,6 @@ class Log_Filter:
                 category, tag, type, content = result[0]
                 # XMETRICS_PACKET_INFO
                 if type == "real_time":
-                    # return True
-                    # print(category, tag, content)
                     if category in self.metrics_category and tag in self.metrics_category[category]:
                         rule = self.metrics_rule_map[category][tag]
                         ret, payload = rule(content,alarm_database_name)
@@ -129,18 +129,18 @@ class Log_Filter:
                 elif type == "flow" or type == "timer" or type == "counter":
                     # print(category, tag, content)
                     metrics_info = {
-                        'env': alarm_database_name,
-                        'public_ip': gl.get_ip(),
-                        'send_timestamp': int(int(time.time())/180)*180,
+                        # 'env': alarm_database_name,
+                        # 'public_ip': gl.get_ip(),
+                        'send_timestamp': int(int(time.time())/300)*300,
                         'category': category,
                         'tag': tag,
                     }
                     json_content = json.loads(content)
                     for key in json_content:
                         metrics_info[key] = json_content[key]
-                    payload = {
+                    payload = json.dumps({
                         "alarm_type": "metrics_"+type, "packet": metrics_info
-                    }
+                    })
                     # print(payload)
                     put_alarmq(payload)
 
@@ -272,20 +272,76 @@ def do_alarm(alarm_list):
         'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36',
         'Content-Type': 'application/json;charset=UTF-8',
     }
-    #my_data = json.dumps(alarm_list)
     my_data = {
         'token': 'testtoken',
-        'data': []
+        'public_ip': gl.get_ip(),
+        'env': alarm_database_name,
+        'data': [json.loads(_l) for _l in alarm_list],
     }
-    my_data['data'] = alarm_list
-    my_data = json.dumps(my_data)
-    # slog.info("do_alarm: {0}".format(my_data))
+    my_data = json.dumps(my_data, separators=(',', ':'))
+    # print("do_alarm: {0}".format(my_data))
+    # print("[after]{0}".format(json.loads(my_data)))
     try:
-        #res = requests.post(url, headers = my_headers,data = my_data, timeout = 5)
         res = mysession.post(url, headers=my_headers, data=my_data, timeout=5)
         if res.status_code == 200:
             if res.json().get('status') == 0:
                 # slog.info("send alarm ok, response: {0}".format(res.text))
+                return True
+            else:
+                slog.warn("send alarm fail, response: {0}".format(res.text))
+        else:
+            slog.warn('send alarm fail: {0}'.format(res.text))
+    except Exception as e:
+        slog.warn("exception: {0}".format(e))
+
+    return False
+
+
+def do_alarm_tz(alarm_list: list):
+    # global alarm_proxy_host
+    # url = 'http://' + alarm_proxy_host
+    # url = urljoin(url, '/api/alarm/')
+
+    url = 'https://dt-apigateway-log.dt-pn1.com/report/log/async/'
+    # 
+    my_headers = {
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36',
+        'Content-Type': 'application/json;charset=UTF-8',
+    }
+    # print("alarm_list: {0}".format(alarm_list))
+    msg_data = {
+        "data": [json.loads(_l) for _l in alarm_list],
+        "public_ip":gl.get_ip(),
+        "env":alarm_database_name,
+    }
+    msg_data = json.dumps(msg_data, separators=(',', ':'))
+    print("msg_data : {0}".format(msg_data))
+    # print("msg_data:len : {0}".format(len(msg_data)))
+    data_sha = ""
+    if len(msg_data) <= 128:
+        data_sha = hashlib.sha256(msg_data.encode('utf-8')).hexdigest()
+    else:
+        new_str = msg_data[0:64]+msg_data[-64:]
+        # print("new_str: {0}".format(new_str))
+        data_sha = hashlib.sha256(new_str.encode('utf-8')).hexdigest()
+
+    # print("sign: {0}".format(data_sha))
+
+    post_data = {
+        "topic": "tz_chain",
+        "msg": msg_data,
+        "sign": data_sha
+    }
+    post_data = json.dumps(post_data)
+
+    print("do_alarm: {0}".format(post_data))
+    # return
+    try:
+        res = mysession.post(url, headers=my_headers,
+                             data=post_data, timeout=5)
+        if res.status_code == 200:
+            if res.json().get('status') == 0 or res.json().get('status') == 200:
+                slog.info("send alarm ok, response: {0}".format(res.text))
                 return True
             else:
                 slog.warn("send alarm fail, response: {0}".format(res.text))
@@ -313,6 +369,7 @@ def consumer_alarm():
                 if len(alarm_list) >= alarm_pack_num:
                     # slog.info("alarm do_alarm")
                     do_alarm(alarm_list)
+                    # do_alarm_tz(alarm_list)
                     alarm_list.clear()
 
             time.sleep(1)
