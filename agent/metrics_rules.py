@@ -4,209 +4,158 @@ import time
 import random
 import copy
 import hashlib
+import re
 from common.slogging import slog
 
+service_type_pattern = " \[network (.*)\]-\[zone (.*)\]-\[cluster (.*)\]-\[group (.*)\]-\[height (.*)\]"
+def anaylse_service_type(type_info_str: str) -> str:
+    result = re.findall(service_type_pattern, type_info_str)
+    network_id, zone_id, cluster_id, group_id, height = result[0]
+    network_id = int(network_id)
+    zone_id = int(zone_id)
+    cluster_id = int(cluster_id)
+    group_id = int(group_id)
+    height = int(height)
+    if zone_id == 1 and cluster_id == 0 and group_id == 0:
+        return "rec", height
+    if zone_id == 2 and cluster_id == 0 and group_id == 0:
+        return "zec", height
+    if zone_id == 0 and cluster_id == 1:
+        if group_id < 64:
+            return "adv"+str(group_id), height
+        else:
+            return "con"+str(group_id), height
+    if zone_id == 14 and cluster_id == 1 and group_id == 1:
+        return "archive", height
+    if zone_id == 15 and cluster_id == 1 and group_id == 1:
+        return "edge", height
+    return "unknown", height
 
 class CallBackHub():
     def __init__(self):
         self.alarm_type_queue_num = 4
-        self.rate_level = 3
-        self.rate_num = (2**self.rate_level - 1) << 2
+        self.rate_level = 5
+        self.rate_num = (2**self.rate_level - 1)
 
         # xsync
-        self.xsync_interval = 180
+        self.xsync_interval = 300
         self.xsync_cache = {
             "fast":{},
             "full":{},
         }
-
-        self.msg_recv_cache = {}
-        for num in range(self.alarm_type_queue_num):
-            self.msg_recv_cache[num] = {}
-
-        self.msg_recv_last_send_timestamp = {
-            0: time.time() * 1000,
-            1: time.time() * 1000,
-            2: time.time() * 1000,
-            3: time.time() * 1000,
+    
+    def p2pkadinfo_rule(self, content: str):
+        '''
+        "content": {
+            "local_nodeid": "f600000000040801.01c0000000000022",
+            "service_type": " [network 0]-[zone 0]-[cluster 1]-[group 2]-[height 34]",
+            "node_size": 7,
+            "unknown_node_size": 0,
+            "public_ip": "104.248.6.197",
+            "public_port": 9000
         }
-
-        self.msg_send_cache = {}
-        for num in range(self.alarm_type_queue_num):
-            self.msg_send_cache[num] = {}
-        self.msg_send_last_send_timestamp = {
-            0: time.time() * 1000,
-            1: time.time() * 1000,
-            2: time.time() * 1000,
-            3: time.time() * 1000,
+        "content": {
+            "local_nodeid": "aa2fffff64b1bb93.971274084dd90fa8",
+            "service_type": " [network 1048575]-[zone 50]-[cluster 44]-[group 110]-[height 1642408]",
+            "neighbours": 41,
+            "public_ip": "104.248.6.197",
+            "public_port": 9000
         }
+        '''
+        json_content = json.loads(content)
+        packet_info = {}
+        if "neighbours" in json_content:
+            # root
+            packet_info["service_type"] = "root"
+            packet_info["neighbours"] = json_content["neighbours"]
+            packet_info["local_nodeid"] = json_content["local_nodeid"]
+        else:
+            # election:
+            service_type,height = anaylse_service_type(json_content["service_type"])
+            # print(content,service_type,height)
+            # slog.info("{0}{1}{2}".format(content,service_type,height))
+            if service_type == "unknown":
+                return False,""
+            packet_info["service_type"] = service_type
+            packet_info["height"] = height
+            packet_info["node_size"] = json_content["node_size"]
+            packet_info["unknown_node_size"] = json_content["unknown_node_size"]
+            packet_info["local_nodeid"] = json_content["local_nodeid"]
+        packet_info["update_time"] = int(time.time())
+        
+        payload = {"alarm_type": "kadinfo", "packet": packet_info}
+        return True, json.dumps(payload)
 
     def p2pbroadcast_message_send_rule(self, content: str):
         '''
-        "category": "p2pnormal",
-        "tag": "wroutersend_info",
-        "type": "real_time",
         "content": {
-            "src_node_id": "f60000ff020003ff.0380000000000000",
-            "dst_node_id": "f60000ff020003ff.0380000000000000",
+            "src_node_id": "f60000ff020003ff.0200000000000000",
+            "dst_node_id": "f60000ff020003ff.0200000000000000",
             "hop_num": 0,
-            "msg_hash": 1543720011,
-            "msg_size": 553,
+            "msg_hash": 4279548633,
+            "msg_size": 554,
             "is_root": 0,
             "is_broadcast": 1,
-            "timestamp": 1623838240265
+            "timestamp": 1625811480400
         }
         '''
         json_content = json.loads(content)
         m_hash = json_content["msg_hash"]
 
         if(m_hash & self.rate_num) == self.rate_num:
-            # do record
-            # uniq_key = '{0}_{1}'.format(header_hash,msg_size)
-            uniq_key = '{0}_'.format(m_hash)
-            uniq_hash = int(hashlib.sha256(
-                uniq_key.encode('utf-8')).hexdigest(), 16) % (10**19)
-            index = uniq_hash % self.alarm_type_queue_num
-            if uniq_hash not in self.msg_send_cache[index]:
-                msg_cache = {}
-                msg_cache['src_id'] = json_content["src_node_id"]
-                msg_cache['dst_id'] = json_content["dst_node_id"]
-                msg_cache['msg_size'] = json_content["msg_size"]
-                msg_cache['msg_hash'] = m_hash
-                msg_cache['is_root'] = json_content["is_root"]
-                msg_cache['is_broadcast'] = json_content["is_broadcast"]
-                msg_cache['timestamp'] = json_content["timestamp"]
-                self.msg_send_cache[index][uniq_hash] = msg_cache
-            else:
-                slog("repeated send?")
+            packet_info = {}
+            packet_info["type"] = "send"
+            packet_info["src_node_id"] = json_content["src_node_id"]
+            packet_info["dst_node_id"] = json_content["dst_node_id"]
+            packet_info["hop_num"] = json_content["hop_num"]
+            packet_info["msg_hash"] = json_content["msg_hash"]
+            packet_info["msg_size"] = json_content["msg_size"]
+            packet_info["is_root"] = json_content["is_root"]
+            packet_info["is_broadcast"] = json_content["is_broadcast"]
+            packet_info["timestamp"] = json_content["timestamp"]
+            
+            payload = {"alarm_type":"p2pbroadcast","packet":packet_info}
 
-        time_ = int(time.time()) * 1000
-
-        # send packet of all every 10s or queue full 3000
-        for queue_num in range(self.alarm_type_queue_num):
-            # slog.info("in? queue_num: {0} {1}".format(queue_num,time_-self.msg_send_last_send_timestamp[queue_num]))
-            # if len(self.msg_send_cache[queue_num]):
-            if len(self.msg_send_cache[queue_num]) > 3000 or (time_-self.msg_send_last_send_timestamp[queue_num] >= 10 * 1000 and len(self.msg_send_cache[queue_num])):
-                # slog.info("in2? queue_num: {0} {1}".format(queue_num,time_-self.msg_send_last_send_timestamp[queue_num]))
-                packet_info = {}
-                packet_info["msg_type"] = "send"
-                packet_info["public_ip"] = gl.get_ip()
-                packet_info["content"] = copy.deepcopy(
-                    self.msg_send_cache[queue_num])
-                self.msg_send_cache[queue_num] = {}
-                self.msg_send_last_send_timestamp[queue_num] = time_+(
-                    int(random.random()*3000))
-                payload = {"alarm_type": "p2p_gossip", "packet": packet_info}
-                # print(payload)
-                # slog.info("payload {0}".format(payload))
-                return True, payload
-
-        return False, {}
+            return True,json.dumps(payload)
+        return False,""
 
     def p2pbroadcast_message_recv_rule(self, content: str):
-        # vhostrecv_info
         '''
-            "category": "p2pnormal",
-            "tag": "vhostrecv_info",
-            "type": "real_time",
-            "content": {
-                "src_node_id": "f60000ff020003ff.0380000000000000",
-                "dst_node_id": "e30fffff1dc93c29.bfe00aa671058fe0",
-                "hop_num": 3,
-                "msg_hash": 1835013513,
-                "msg_size": 501,
-                "is_root": 1,
-                "is_broadcast": 1,
-                "is_pulled": 0,
-                "packet_size": 773,
-                "timestamp": 1623838230771
-            }
-        '''
-        # wrouterrecv_info
-        '''
-            "category": "p2pnormal",
-            "tag": "wrouterrecv_info",
-            "type": "real_time",
-            "content": {
-                "src_node_id": "f60000ff020003ff.0380000000000000",
-                "dst_node_id": "3ecfffff96ea335a.6431c5187ffb89b4",
-                "hop_num": 3,
-                "msg_hash": 1835013513,
-                "msg_size": 501,
-                "is_root": 1,
-                "is_broadcast": 1,
-                "packet_size": 773,
-                "timestamp": 1623838230771
-            }
+        "content": {
+            "src_node_id": "f60000ff020003ff.0200000000000000",
+            "dst_node_id": "f60000ff020003ff.0200000000000000",
+            "hop_num": 2,
+            "msg_hash": 4279548633,
+            "msg_size": 554,
+            "is_root": 0,
+            "is_broadcast": 1,
+            "is_pulled": 0,
+            "packet_size": 736,
+            "timestamp": 1625811480401
+        }
         '''
         json_content = json.loads(content)
-        # if "msg_hash" in json_content.keys():
         m_hash = json_content["msg_hash"]
-        m_size = json_content["msg_size"]
 
-        # else:
-        #     m_hash = json_content["gossip_header_hash"]
-        #     m_size = json_content["gossip_block_size"]
-
-        # slog.info("get recv message info {0} rate {1}".format(header_hash,self.rate_num))
         if(m_hash & self.rate_num) == self.rate_num:
-            # slog.info("get recv message info inside {0}".format(header_hash))
-            msg_size = m_size
-            uniq_key = '{0}_'.format(m_hash)
-            uniq_hash = int(hashlib.sha256(
-                uniq_key.encode('utf-8')).hexdigest(), 16) % (10**19)
-            index = uniq_hash % self.alarm_type_queue_num
+            packet_info = {}
+            packet_info["type"] = "recv"
+            packet_info["src_node_id"] = json_content["src_node_id"]
+            packet_info["dst_node_id"] = json_content["dst_node_id"]
+            packet_info["hop_num"] = json_content["hop_num"]
+            packet_info["msg_hash"] = json_content["msg_hash"]
+            packet_info["msg_size"] = json_content["msg_size"]
+            packet_info["is_root"] = json_content["is_root"]
+            packet_info["is_broadcast"] = json_content["is_broadcast"]
+            packet_info["packet_size"] = json_content["packet_size"]
+            packet_info["timestamp"] = json_content["timestamp"]
+            
+            payload = {"alarm_type":"p2pbroadcast","packet":packet_info}
 
-            if uniq_hash not in self.msg_recv_cache[index]:
-                msg_cache = {}
-                msg_cache['vhost_recv'] = 0
-                msg_cache['recv_cnt'] = 0
-                msg_cache['recv_hash_cnt'] = 0
-                msg_cache['is_pulled'] = 0
-                msg_cache['packet_size'] = json_content["packet_size"]
-                self.msg_recv_cache[index][uniq_hash] = msg_cache
-            else:
-                msg_cache = self.msg_recv_cache[index][uniq_hash]
-                msg_cache['packet_size'] += json_content["packet_size"]
+            return True,json.dumps(payload)
+        return False,""
 
-            if "is_pulled" in json_content:
-                # vhost_recv_info
-                msg_cache['vhost_recv'] += 1
-                msg_cache['src_id'] = json_content["src_node_id"]
-                msg_cache['dst_id'] = json_content["dst_node_id"]
-                msg_cache['timestamp'] = json_content["timestamp"]
-                msg_cache['is_pulled'] = json_content["is_pulled"]
-                msg_cache['hop_num'] = json_content["hop_num"]
-            else:
-                # if msg_size != 0:
-                msg_cache['recv_cnt'] += 1
-                # else:
-                #     msg_cache["recv_hash_cnt"] +=1
-
-            time_ = int(time.time())*1000
-
-            for queue_num in range(self.alarm_type_queue_num):
-                # slog.info("in? queue_num: {0} {1}".format(queue_num,time_-self.msg_send_last_send_timestamp[queue_num]))
-                # if len(self.msg_recv_cache[queue_num]):
-                if len(self.msg_recv_cache[queue_num]) > 3000 or (time_-self.msg_recv_last_send_timestamp[queue_num] >= 10*1000 and len(self.msg_recv_cache[queue_num])):
-                    # slog.info("in2? queue_num: {0} {1}".format(queue_num,time_-self.msg_send_last_send_timestamp[queue_num]))
-                    packet_info = {}
-                    packet_info["msg_type"] = "recv"
-                    packet_info["public_ip"] = gl.get_ip()
-                    packet_info["content"] = copy.deepcopy(
-                        self.msg_recv_cache[queue_num])
-                    self.msg_recv_cache[queue_num] = {}
-                    self.msg_recv_last_send_timestamp[queue_num] = time_+(
-                        int(random.random()*3000))
-                    payload = {"alarm_type": "p2p_gossip",
-                               "packet": packet_info}
-                    # print(payload)
-                    slog.info("payload {0}".format(payload))
-                    return True, payload
-
-        return False, ""
-
-    def vnode_status_rule(self,content:str,databasename:str):
+    def vnode_status_rule(self,content:str):
         json_content = json.loads(content)
         packet_info = {}
         
@@ -223,7 +172,7 @@ class CallBackHub():
 
         return True,json.dumps(payload)
 
-    def sync_interval_rule(self,content:str,databasename:str):
+    def sync_interval_rule(self,content:str):
         json_content = json.loads(content)
         sync_mod = json_content["mode"]
         table_address = json_content["table_address"]

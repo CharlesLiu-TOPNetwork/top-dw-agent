@@ -118,10 +118,11 @@ class Log_Filter:
                 if type == "real_time":
                     if category in self.metrics_category and tag in self.metrics_category[category]:
                         rule = self.metrics_rule_map[category][tag]
-                        ret, payload = rule(content,alarm_database_name)
+                        ret, payload = rule(content)
+                        # slog.info("{0} {1} {2}".format(
+                        #     category, tag, content))
+                        # slog.info("{0}: {1}".format(ret,payload))
                         if ret:
-                            # slog.info("{0} {1} {2} {3}".format(
-                            #     category, tag, content, payload))
                             # print(payload)
                             put_alarmq(payload)
                             return True
@@ -164,20 +165,6 @@ class log_monitor:
     def __init__(self):
         self.callbackhub = metrics_rules.CallBackHub()
         metrics_rule_map = {
-            # "p2p": {
-            #     "electvhost_recv": self.callbackhub.default_metrics_rule,
-            #     "electvhost_send": self.callbackhub.default_metrics_rule
-            # },
-            # "testcategory": {
-            #     "test_tag1": self.callbackhub.default_metrics_rule,
-            #     "test_tag2": self.callbackhub.default_metrics_rule
-            # },
-            # "p2pdemo":{
-            #     "broadcast_sendmsg_hash": self.callbackhub.p2pdemo_message_send_rule,
-            #     "send_sendmsg_hash":self.callbackhub.p2pdemo_message_send_rule,
-            #     "msgrecv_recvall":self.callbackhub.p2pdemo_message_recv_rule,
-            #     "electvhost_recv":self.callbackhub.p2pdemo_message_recv_rule
-            # },
             # # p2pperf -> rrs gossip only:
             # "p2pperf":{
             #     "vhostrecv_info": self.callbackhub.p2pbroadcast_message_recv_rule,
@@ -189,6 +176,13 @@ class log_monitor:
             #     "wrouterrecv_info": self.callbackhub.p2pbroadcast_message_recv_rule,
             #     "wroutersend_info": self.callbackhub.p2pbroadcast_message_send_rule
             # },
+            "p2p":{
+                "kad_info": self.callbackhub.p2pkadinfo_rule,
+            },
+            "p2pbroadcast":{
+                "wroutersend_info": self.callbackhub.p2pbroadcast_message_send_rule,
+                "vhostrecv_info": self.callbackhub.p2pbroadcast_message_recv_rule,
+            },
             "vnode":{
                 "status": self.callbackhub.vnode_status_rule,
             },
