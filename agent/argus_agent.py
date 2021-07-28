@@ -189,6 +189,11 @@ class log_monitor:
             "xsync":{
                 "interval": self.callbackhub.sync_interval_rule,
             },
+            "txpool":{
+                "state": self.callbackhub.txpool_state_rule,
+                "receipt_delay": self.callbackhub.txpool_receipt_delay_rule,
+                "cache": self.callbackhub.txpool_cache_rule,
+            },
         }
         self.log_filter = Log_Filter(metrics_rule_map)
 

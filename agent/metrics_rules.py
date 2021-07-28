@@ -43,6 +43,9 @@ class CallBackHub():
             "fast":{},
             "full":{},
         }
+
+        # txpool
+        self.txpool_interval = 300
     
     def p2pkadinfo_rule(self, content: str):
         '''
@@ -218,6 +221,59 @@ class CallBackHub():
             payload = {"alarm_type":"xsync_interval","packet":packet_info}
             self.xsync_cache[sync_mod][table_address]["send_timestamp"] = int(int(time.time())/self.xsync_interval)*self.xsync_interval
             return True,json.dumps(payload)
+
+    def txpool_state_rule(self,content:str):
+        '''
+        "content": {
+            "table_num": 0,
+            "unconfirm": 0,
+            "received_recv": 0,
+            "received_confirm": 0,
+            "pulled_recv": 0,
+            "pulled_confirm": 0
+        }
+        '''
+        json_content = json.loads(content)
+        json_content["send_timestamp"] = int(int(time.time())/self.txpool_interval)*self.txpool_interval
+        payload = {"alarm_type":"txpool_state","packet":json_content}
+        return True,json.dumps(payload)
+
+    def txpool_receipt_delay_rule(self,content:str):
+        '''
+        "content": {
+            "1clk": 0,
+            "2clk": 0,
+            "3clk": 0,
+            "4clk": 0,
+            "5clk": 0,
+            "6clk": 0,
+            "7to12clk": 0,
+            "13to30clk": 0,
+            "ex30clk": 0
+        }
+        '''
+        json_content = json.loads(content)
+        json_content["send_timestamp"] = int(int(time.time())/self.txpool_interval)*self.txpool_interval
+        payload = {"alarm_type":"txpool_receipt","packet":json_content}
+        return True,json.dumps(payload)
+
+    def txpool_cache_rule(self,content:str):
+        '''
+        "content": {
+            "send_cur": 0,
+            "recv_cur": 0,
+            "confirm_cur": 0,
+            "unconfirm_cur": 0,
+            "push_send_fail": 0,
+            "push_receipt_fail": 0,
+            "duplicate": 0,
+            "repeat": 0
+        }
+        '''
+        json_content = json.loads(content)
+        json_content["send_timestamp"] = int(int(time.time())/self.txpool_interval)*self.txpool_interval
+        payload = {"alarm_type":"txpool_cache","packet":json_content}
+        return True,json.dumps(payload)
 
     def default_metrics_rule(self, content: str):
         # slog.info("default")
