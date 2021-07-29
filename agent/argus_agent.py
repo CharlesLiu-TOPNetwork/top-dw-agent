@@ -126,6 +126,21 @@ class Log_Filter:
                             # print(payload)
                             put_alarmq(payload)
                             return True
+                # XMETRICS_PACKET_ALARM
+                elif type == "alarm":
+                    metrics_info = {
+                        'send_timestamp': int(time.time()),
+                        'category': category,
+                        'tag': tag,
+                        'kv_content':json.loads(content)
+                    }
+                    payload = json.dumps({
+                        "alarm_type": "metrics_alarm",
+                        "packet": metrics_info
+                    })
+                    print(payload)
+                    put_alarmq_high(payload)
+                    return True
                 # XMETRICS_COUNTER/TIMER/FLOW
                 elif type == "flow" or type == "timer" or type == "counter":
                     # print(category, tag, content)
@@ -440,6 +455,11 @@ def run(args):
     con_send_th.daemon = True
     con_send_th.start()
     slog.info("start consumer_alarm thread")
+
+    con_alarm_high_th = threading.Thread(target = consumer_alarm_high)
+    con_alarm_high_th.daemon = True
+    con_alarm_high_th.start()
+    slog.info("start consumer_alarm_high thread")
 
     while True:
         time.sleep(1000)
