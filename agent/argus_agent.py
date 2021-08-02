@@ -142,7 +142,7 @@ class Log_Filter:
                     put_alarmq_high(payload)
                     return True
                 # XMETRICS_COUNTER/TIMER/FLOW
-                elif type == "flow" or type == "timer" or type == "counter":
+                elif type in ["flow", "timer", "counter", "array_counter"]:
                     # print(category, tag, content)
                     metrics_info = {
                         # 'env': alarm_database_name,
