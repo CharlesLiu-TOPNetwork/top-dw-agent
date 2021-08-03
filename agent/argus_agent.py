@@ -424,7 +424,7 @@ def run(args):
         slog.error('alarm proxy host invalid')
         return 1
 
-    alarm_database_name = args.database
+    alarm_database_name = args.database.replace('.','_')
     alarm_proxy_host = args.alarm
     alarm_filename = args.file
 
