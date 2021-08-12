@@ -7,6 +7,7 @@ import hashlib
 import queue
 
 import time
+import datetime
 import requests
 import copy
 import json
@@ -286,10 +287,14 @@ def do_alarm(alarm_list):
         'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36',
         'Content-Type': 'application/json;charset=UTF-8',
     }
+    tz = datetime.timezone(datetime.timedelta(hours=0))
+    date_day = datetime.datetime.now(tz).date()
+    str_date = str(date_day).replace('-', '')
+    # print(str_date)
     my_data = {
         'token': 'testtoken',
         'public_ip': gl.get_ip(),
-        'env': alarm_database_name,
+        'env': alarm_database_name + '_' + str_date,
         'data': [json.loads(_l) for _l in alarm_list],
     }
     my_data = json.dumps(my_data, separators=(',', ':'))
