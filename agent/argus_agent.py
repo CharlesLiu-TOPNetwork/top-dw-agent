@@ -19,6 +19,7 @@ from urllib.parse import urljoin
 
 from common.slogging import slog
 import common.daemon as daemon
+import common.config as config
 
 import agent.metrics_rules as metrics_rules
 import agent.global_var as gl
@@ -321,7 +322,7 @@ def do_alarm_tz(alarm_list: list):
     # url = 'http://' + alarm_proxy_host
     # url = urljoin(url, '/api/alarm/')
 
-    url = 'https://dt-apigateway-log.dt-pn1.com/report/log/async/'
+    url = config.tz_alarm_url
     # 
     my_headers = {
         'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36',

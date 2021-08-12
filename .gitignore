@@ -3,3 +3,4 @@
 nohup.out
 tmp.json
 /build/
+common/config.py
