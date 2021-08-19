@@ -146,6 +146,26 @@ class Log_Filter:
                 # XMETRICS_COUNTER/TIMER/FLOW
                 elif type in ["flow", "timer", "counter", "array_counter"]:
                     # print(category, tag, content)
+
+                    if type == "counter" and category == "xsync" and (str(tag).startswith("fast_mode_gap") or str(tag).startswith("full_mode_gap")):
+                        val = json.loads(content)['value']
+                        if val > 128:
+                            metrics_alarm = {
+                                'send_timestamp' : int(time.time()),
+                                'category' : category,
+                                'tag':tag,
+                                'kv_content':{
+                                    'alarm':'gap bigger than 128',
+                                    'gap': val,
+                                }
+                            }
+                            payload_alarm = json.dumps({
+                                "alarm_type": "metrics_alarm",
+                                "packet":metrics_alarm
+                            })
+                            print(payload_alarm)
+                            put_alarmq_high(payload_alarm)
+
                     metrics_info = {
                         # 'env': alarm_database_name,
                         # 'public_ip': gl.get_ip(),
