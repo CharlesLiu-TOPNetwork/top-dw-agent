@@ -451,6 +451,8 @@ def run(args):
         return 1
 
     alarm_database_name = args.database.replace('.','_')
+    if len(alarm_database_name) >= 52:
+        alarm_database_name = alarm_database_name[0:25] + '__' + alarm_database_name[-25:]
     alarm_proxy_host = args.alarm
     alarm_filename = args.file
 
