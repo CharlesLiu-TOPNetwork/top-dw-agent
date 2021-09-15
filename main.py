@@ -17,6 +17,7 @@ if __name__ == "__main__":
     parser.add_argument('-a', '--alarm', help='alarm proxy host, agent pull config and push alarm to this proxy host, eg: 127.0.0.1:9090', default='127.0.0.1:9090')
     parser.add_argument('-f', '--file', help="log file for agent to watch, eg: ./xtop.log", default='/chain/log/xtop.log')
     parser.add_argument('-d', '--database', help="set this environment name, which decide to store in which database", default='test_database_name')
+    parser.add_argument('--split', action='store_true',  help='agent will auto split database by add date-suffix, deafalut false')
     parser.add_argument('--nodaemon', action='store_true', help='start as no-daemon mode')
     args = parser.parse_args()
 

@@ -30,11 +30,6 @@ import agent.global_var as gl
 ALARMQ = queue.Queue(2000)
 ALARMQ_HIGH = queue.Queue(2000)
 
-gconfig = {
-    'global_sample_rate': 1000,  # sample_rate%。
-    'alarm_pack_num': 4,   # upload alarm size one time
-    'config_update_time': 5 * 60,  # 5 min
-}
 # keep all nodeid existing: key is node_id, value is timestamp (ms)
 NodeIdMap = {}
 mark_down_flag = False
@@ -47,6 +42,53 @@ mysession = requests.Session()
 mypublic_ip_port = '127.0.0.1:800'
 my_root_id = ''
 
+spilt_database = False
+
+def update_config_from_remote():
+    global alarm_database_name, alarm_proxy_host, mypublic_ip_port 
+    url = 'http://' + alarm_proxy_host
+    url = urljoin(url, '/api/config/')
+    my_headers = {
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36',
+            'Content-Type': 'application/json;charset=UTF-8',
+            }
+    recv_config = {}
+    try:
+        res = requests.get(url, headers = my_headers, timeout = 5)
+        if res.status_code == 200:
+            if res.json().get('status') == 0:
+                slog.info("get remote config ok, response: {0}".format(res.text))
+                recv_config = res.json().get('config')
+    except Exception as e:
+        slog.warn("exception: {0}".format(e))
+        return False
+
+    if not recv_config:
+        slog.warn("get remote config fail")
+        return False
+
+    if alarm_database_name in recv_config:
+        # need reconfig some setting.
+        # print(config[alarm_database_name])
+        for k,v in recv_config[alarm_database_name].items():
+            # print(k,v)
+            config.dw_config[k] = v
+        # print(config.dw_config)
+        slog.info('get remote config ok: {0}'.format(json.dumps(config.dw_config)))
+        return True
+    
+    return False
+
+def update_config():
+    while True:
+        time_step = config.dw_config.get('config_update_time')
+        if not time_step:
+            time_step = 5 * 60
+        time.sleep(time_step)
+        slog.debug('update remote config alive, update_step:{0} s'.format(time_step))
+        update_config_from_remote()
+
+    return
 
 def clear_queue():
     global ALARMQ, ALARMQ_HIGH
@@ -119,15 +161,17 @@ class Log_Filter:
                 # XMETRICS_PACKET_INFO
                 if type == "real_time":
                     if category in self.metrics_category and tag in self.metrics_category[category]:
-                        rule = self.metrics_rule_map[category][tag]
-                        ret, payload = rule(content)
-                        # slog.info("{0} {1} {2}".format(
-                        #     category, tag, content))
-                        # slog.info("{0}: {1}".format(ret,payload))
-                        if ret:
-                            # print(payload)
-                            put_alarmq(payload)
-                            return True
+                        # slog.info("try: {0}".format(content))
+                        if config.dw_config.get('packet_info_alarm_' + category):
+                            rule = self.metrics_rule_map[category][tag]
+                            ret, payload = rule(content)
+                            # slog.info("{0} {1} {2}".format(
+                            #     category, tag, content))
+                            # slog.info("{0}: {1}".format(ret,payload))
+                            if ret:
+                                # print(payload)
+                                put_alarmq(payload)
+                                return True
                 # XMETRICS_PACKET_ALARM
                 elif type == "alarm":
                     metrics_info = {
@@ -309,13 +353,20 @@ def do_alarm(alarm_list):
         'Content-Type': 'application/json;charset=UTF-8',
     }
     tz = datetime.timezone(datetime.timedelta(hours=0))
-    date_day = datetime.datetime.now(tz).date()
-    str_date = str(date_day).replace('-', '')
+    
+    global spilt_database
+    env_name = ''
+    if spilt_database:
+        date_day = datetime.datetime.now(tz).date()
+        str_date = str(date_day).replace('-', '')
+        env_name = alarm_database_name + '_' + str_date
+    else:
+        env_name = alarm_database_name
     # print(str_date)
     my_data = {
         'token': 'testtoken',
         'public_ip': gl.get_ip(),
-        'env': alarm_database_name + '_' + str_date,
+        'env': env_name,
         'data': [json.loads(_l) for _l in alarm_list],
     }
     my_data = json.dumps(my_data, separators=(',', ':'))
@@ -394,8 +445,8 @@ def do_alarm_tz(alarm_list: list):
 
 
 def consumer_alarm():
-    global ALARMQ, ALARMQ_HIGH, gconfig
-    alarm_pack_num = gconfig.get('alarm_pack_num')
+    global ALARMQ, ALARMQ_HIGH
+    alarm_pack_num = config.dw_config.get('alarm_pack_num')
     th_name = threading.current_thread().name
     alarm_list = []
     while True:
@@ -418,9 +469,9 @@ def consumer_alarm():
 
 
 def consumer_alarm_high():
-    global ALARMQ, ALARMQ_HIGH, gconfig
+    global ALARMQ, ALARMQ_HIGH
     th_name = threading.current_thread().name
-    alarm_pack_num = gconfig.get('alarm_pack_num')
+    alarm_pack_num = config.dw_config.get('alarm_pack_num')
     alarm_pack_num = 1
     alarm_list = []
     while True:
@@ -445,7 +496,7 @@ def consumer_alarm_high():
 
 
 def run(args):
-    global gconfig, alarm_database_name, alarm_proxy_host, mypublic_ip_port
+    global alarm_database_name, alarm_proxy_host, mypublic_ip_port, spilt_database
     if args.alarm.find(':') == -1:
         slog.error('alarm proxy host invalid')
         return 1
@@ -461,6 +512,14 @@ def run(args):
     slog.info(start_print)
     print(start_print)
 
+    print(args)
+    
+    if args.split:
+        slog.warn("will auto split database name")
+        spilt_database = True
+    else:
+        spilt_database = False
+
     if args.nodaemon:
         slog.warn("start as no-daemon mode")
     else:
@@ -472,6 +531,13 @@ def run(args):
             raise SystemExit(1)
 
     log_m = log_monitor()
+
+    # update_config_from_remote()
+
+    update_config_th = threading.Thread(target = update_config)
+    update_config_th.daemon = True
+    update_config_th.start()
+    slog.info('start update config from remote thread')
 
     watchlog_th = threading.Thread(
         target=log_m.run_watch, args=(alarm_filename, ))

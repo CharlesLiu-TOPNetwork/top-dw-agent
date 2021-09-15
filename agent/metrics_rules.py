@@ -6,6 +6,7 @@ import copy
 import hashlib
 import re
 from common.slogging import slog
+from common.config import dw_config
 
 service_type_pattern = " \[network (.*)\]-\[zone (.*)\]-\[cluster (.*)\]-\[group (.*)\]-\[height (.*)\]"
 def anaylse_service_type(type_info_str: str) -> str:
@@ -33,10 +34,6 @@ def anaylse_service_type(type_info_str: str) -> str:
 
 class CallBackHub():
     def __init__(self):
-        self.alarm_type_queue_num = 4
-        self.rate_level = 5
-        self.rate_num = (2**self.rate_level - 1)
-
         # xsync
         self.xsync_interval = 300
         self.xsync_cache = {
@@ -104,8 +101,8 @@ class CallBackHub():
         '''
         json_content = json.loads(content)
         m_hash = json_content["msg_hash"]
-
-        if(m_hash & self.rate_num) == self.rate_num:
+        rate_num = 2**dw_config['p2p_sample_rate_level']-1
+        if(m_hash & rate_num) == rate_num:
             packet_info = {}
             packet_info["type"] = "send"
             packet_info["src_node_id"] = json_content["src_node_id"]
@@ -140,7 +137,8 @@ class CallBackHub():
         json_content = json.loads(content)
         m_hash = json_content["msg_hash"]
 
-        if(m_hash & self.rate_num) == self.rate_num:
+        rate_num = 2**dw_config['p2p_sample_rate_level']-1
+        if(m_hash & rate_num) == rate_num:
             packet_info = {}
             packet_info["type"] = "recv"
             packet_info["src_node_id"] = json_content["src_node_id"]
