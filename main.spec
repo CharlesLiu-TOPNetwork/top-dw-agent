@@ -3,12 +3,12 @@
 block_cipher = None
 
 add_datas = [
-    ('project_home/agent', 'agent'),
-    ('project_home/common', 'common')
+    ('/home/charles/Eluvk-project/top-dw-agent/agent', 'agent'),
+    ('/home/charles/Eluvk-project/top-dw-agent/common', 'common')
 ]
 
 a = Analysis(['main.py'],
-             pathex=['project_home'],
+             pathex=['/home/charles/Eluvk-project/top-dw-agent'],
              binaries=[],
              datas=add_datas,
              hiddenimports=["setproctitle"],
