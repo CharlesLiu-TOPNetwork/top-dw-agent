@@ -8,9 +8,11 @@ import re
 from common.slogging import slog
 from common.config import dw_config
 
-service_type_pattern = " \[network (.*)\]-\[zone (.*)\]-\[cluster (.*)\]-\[group (.*)\]-\[height (.*)\]"
+service_type_pattern = " .*\[network (.*)\]-\[zone (.*)\]-\[cluster (.*)\]-\[group (.*)\]-\[height (.*)\]"
 def anaylse_service_type(type_info_str: str) -> str:
     result = re.findall(service_type_pattern, type_info_str)
+    if not result:
+        return False,0
     network_id, zone_id, cluster_id, group_id, height = result[0]
     network_id = int(network_id)
     zone_id = int(zone_id)
