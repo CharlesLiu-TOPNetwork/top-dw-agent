@@ -162,16 +162,16 @@ class Log_Filter:
                 if type == "real_time":
                     if category in self.metrics_category and tag in self.metrics_category[category]:
                         # slog.info("try: {0}".format(content))
-                        if config.dw_config.get('packet_info_alarm_' + category):
-                            rule = self.metrics_rule_map[category][tag]
-                            ret, payload = rule(content)
-                            # slog.info("{0} {1} {2}".format(
-                            #     category, tag, content))
-                            # slog.info("{0}: {1}".format(ret,payload))
-                            if ret:
-                                # print(payload)
-                                put_alarmq(payload)
-                                return True
+                        # if config.dw_config.get('packet_info_alarm_' + category):
+                        rule = self.metrics_rule_map[category][tag]
+                        ret, payload = rule(content)
+                        # slog.info("{0} {1} {2}".format(
+                        #     category, tag, content))
+                        # slog.info("{0}: {1}".format(ret,payload))
+                        if ret:
+                            # print(payload)
+                            put_alarmq(payload)
+                            return True
                 # XMETRICS_PACKET_ALARM
                 elif type == "alarm":
                     metrics_info = {
@@ -257,6 +257,11 @@ class log_monitor:
             #     "wrouterrecv_info": self.callbackhub.p2pbroadcast_message_recv_rule,
             #     "wroutersend_info": self.callbackhub.p2pbroadcast_message_send_rule
             # },
+            "p2ptest": {
+                "send_broadcast_info": self.callbackhub.p2ptest_send_info,
+                "send_record": self.callbackhub.p2ptest_send_record,
+                "vhostrecv_info": self.callbackhub.p2ptest_recv_info,
+            },
             "p2p":{
                 "kad_info": self.callbackhub.p2pkadinfo_rule,
             },
@@ -372,6 +377,7 @@ def do_alarm(alarm_list):
     my_data = json.dumps(my_data, separators=(',', ':'))
     # print("do_alarm: {0}".format(my_data))
     # print("[after]{0}".format(json.loads(my_data)))
+    # return
     try:
         res = mysession.post(url, headers=my_headers, data=my_data, timeout=5)
         if res.status_code == 200:
