@@ -111,7 +111,7 @@ class CallBackHub():
         packet_info["is_broadcast"] = json_content["is_broadcast"]
         packet_info["timestamp"] = json_content["timestamp"]
 
-        payload = {"alarm_type": "p2ptest_send", "packet": packet_info}
+        payload = {"alarm_type": "p2ptest_send_info", "packet": packet_info}
 
         return True, json.dumps(payload)
 
@@ -146,7 +146,7 @@ class CallBackHub():
         packet_info["packet_size"] = json_content["packet_size"]
         packet_info["timestamp"] = json_content["timestamp"]
 
-        payload = {"alarm_type": "p2ptest_recv", "packet": packet_info}
+        payload = {"alarm_type": "p2ptest_recv_info", "packet": packet_info}
 
         return True, json.dumps(payload)
 
