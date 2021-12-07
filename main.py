@@ -22,7 +22,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # set process title
-    proc_title = 'topargus-agent: '
+    proc_title = 'p2ptest-agent-agent: '
     for i in range(len(sys.argv)):
         proc_title = '{0} {1}'.format(proc_title, sys.argv[i])
     setproctitle.setproctitle(proc_title)

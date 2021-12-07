@@ -7,7 +7,7 @@ import threading
 import common.config as sconfig
 
 
-log_path = "/tmp/topargus-agent.log"
+log_path = "/tmp/p2ptest-agent.log"
 slog = logging.getLogger(log_path)
 
 if sconfig.LOGLEVEL == 'debug':
