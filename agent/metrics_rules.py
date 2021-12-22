@@ -171,6 +171,7 @@ class CallBackHub():
         packet_info["validator"] = json_content["validator"]
         packet_info["archive"] = json_content["archive"]
         packet_info["edge"] = json_content["edge"]
+        packet_info["fullnode"] = json_content["fullnode"] if "fullnode" in json_content else 0
         payload = {"alarm_type":"vnode_status","packet":packet_info}
 
         return True,json.dumps(payload)
