@@ -39,13 +39,13 @@ alarm_proxy_host = '127.0.0.1:9090'
 # top-dw-host = '142.93.126.168:9010'
 # host = '161.35.114.185:9010'
 mysession = requests.Session()
-mypublic_ip_port = '127.0.0.1:800'
+mypublic_port = '9000'
 my_root_id = ''
 
 spilt_database = False
 
 def update_config_from_remote():
-    global alarm_database_name, alarm_proxy_host, mypublic_ip_port 
+    global alarm_database_name, alarm_proxy_host 
     url = 'http://' + alarm_proxy_host
     url = urljoin(url, '/api/config/')
     my_headers = {
@@ -162,16 +162,16 @@ class Log_Filter:
                 if type == "real_time":
                     if category in self.metrics_category and tag in self.metrics_category[category]:
                         # slog.info("try: {0}".format(content))
-                        if config.dw_config.get('packet_info_alarm_' + category):
-                            rule = self.metrics_rule_map[category][tag]
-                            ret, payload = rule(content)
-                            # slog.info("{0} {1} {2}".format(
-                            #     category, tag, content))
-                            # slog.info("{0}: {1}".format(ret,payload))
-                            if ret:
-                                # print(payload)
-                                put_alarmq(payload)
-                                return True
+                        # if config.dw_config.get('packet_info_alarm_' + category):
+                        rule = self.metrics_rule_map[category][tag]
+                        ret, payload = rule(content)
+                        # slog.info("{0} {1} {2}".format(
+                        #     category, tag, content))
+                        # slog.info("{0}: {1}".format(ret,payload))
+                        if ret:
+                            # print(payload)
+                            put_alarmq(payload)
+                            return True
                 # XMETRICS_PACKET_ALARM
                 elif type == "alarm":
                     metrics_info = {
@@ -257,6 +257,11 @@ class log_monitor:
             #     "wrouterrecv_info": self.callbackhub.p2pbroadcast_message_recv_rule,
             #     "wroutersend_info": self.callbackhub.p2pbroadcast_message_send_rule
             # },
+            "p2ptest": {
+                "send_broadcast_info": self.callbackhub.p2ptest_send_info,
+                "send_record": self.callbackhub.p2ptest_send_record,
+                "vhostrecv_info": self.callbackhub.p2ptest_recv_info,
+            },
             "p2p":{
                 "kad_info": self.callbackhub.p2pkadinfo_rule,
             },
@@ -363,15 +368,17 @@ def do_alarm(alarm_list):
     else:
         env_name = alarm_database_name
     # print(str_date)
+    global mypublic_port
     my_data = {
         'token': 'testtoken',
-        'public_ip': gl.get_ip(),
+        'public_ip': gl.get_ip() + ':' + str(mypublic_port),
         'env': env_name,
         'data': [json.loads(_l) for _l in alarm_list],
     }
     my_data = json.dumps(my_data, separators=(',', ':'))
     # print("do_alarm: {0}".format(my_data))
     # print("[after]{0}".format(json.loads(my_data)))
+    # return
     try:
         res = mysession.post(url, headers=my_headers, data=my_data, timeout=5)
         if res.status_code == 200:
@@ -496,10 +503,12 @@ def consumer_alarm_high():
 
 
 def run(args):
-    global alarm_database_name, alarm_proxy_host, mypublic_ip_port, spilt_database
+    global alarm_database_name, alarm_proxy_host, spilt_database, mypublic_port
     if args.alarm.find(':') == -1:
         slog.error('alarm proxy host invalid')
         return 1
+    
+    mypublic_port = args.port
 
     alarm_database_name = args.database.replace('.','_')
     if len(alarm_database_name) >= 52:
@@ -507,8 +516,8 @@ def run(args):
     alarm_proxy_host = args.alarm
     alarm_filename = args.file
 
-    start_print = 'agent start... database:{0} host:{1} file:{2}\n'.format(
-        alarm_database_name, alarm_proxy_host, alarm_filename)
+    start_print = 'agent start... database:{0} monitor port:{1} host:{2} file:{3}\n'.format(
+        alarm_database_name, mypublic_port, alarm_proxy_host, alarm_filename)
     slog.info(start_print)
     print(start_print)
 

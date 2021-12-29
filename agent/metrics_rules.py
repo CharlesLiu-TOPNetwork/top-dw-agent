@@ -46,6 +46,120 @@ class CallBackHub():
         # txpool
         self.txpool_interval = 300
     
+    def p2ptest_send_record(self, content: str):
+        '''
+        {
+            "category": "p2ptest",
+            "tag": "send_record",
+            "type": "real_time",
+            "content": {
+                "src_node_id": "2e4ffffff7e74b68.0698b35e1a699d2d",
+                "dst_node_id": "5d6fffff66b167f2.fe8c9257b19dbc2e",
+                "dst_ip_port": "192.168.50.139:9126",
+                "hop_num": 2,
+                "msg_hash": 2498826743,
+                "msg_size": 0,
+                "is_root": 1,
+                "is_broadcast": 1,
+                "timestamp": 1638785164577
+            }
+        }
+        '''
+
+        json_content = json.loads(content)
+        rate_num = 2**dw_config['p2p_sample_rate_level']-1
+        if(json_content["msg_hash"] & rate_num) != rate_num:
+            return False,{}
+        packet_info = {}
+        packet_info["src_node_id"] = json_content["src_node_id"]
+        packet_info["dst_node_id"] = json_content["dst_node_id"]
+        packet_info["dst_ip_port"] = json_content["dst_ip_port"]
+        packet_info["hop_num"] = json_content["hop_num"]
+        packet_info["msg_hash"] = json_content["msg_hash"]
+        packet_info["msg_size"] = json_content["msg_size"]
+        packet_info["is_root"] = json_content["is_root"]
+        packet_info["is_broadcast"] = json_content["is_broadcast"]
+        packet_info["timestamp"] = json_content["timestamp"]
+
+        payload = {"alarm_type": "p2ptest_sendrecord", "packet": packet_info}
+
+        return True, json.dumps(payload)
+
+    def p2ptest_send_info(self, content: str):
+        '''
+        {
+            "category": "p2ptest",
+            "tag": "send_broadcast_info",
+            "type": "real_time",
+            "content": {
+                "src_node_id": "23afffffa02048c9.0fe027cb6e6cbabe",
+                "dst_node_id": "c9cfffffc2b35dff.bdf5ed38df1613e0",
+                "hop_num": 0,
+                "msg_hash": 2523515927,
+                "msg_size": 0,
+                "is_root": 1,
+                "is_broadcast": 1,
+                "timestamp": 1638785153596
+            }
+        }
+        '''
+        json_content = json.loads(content)
+        rate_num = 2**dw_config['p2p_sample_rate_level']-1
+        if(json_content["msg_hash"] & rate_num) != rate_num:
+            return False,{}
+        packet_info = {}
+        packet_info["src_node_id"] = json_content["src_node_id"]
+        packet_info["dst_node_id"] = json_content["dst_node_id"]
+        packet_info["hop_num"] = json_content["hop_num"]
+        packet_info["msg_hash"] = json_content["msg_hash"]
+        packet_info["msg_size"] = json_content["msg_size"]
+        packet_info["is_root"] = json_content["is_root"]
+        packet_info["is_broadcast"] = json_content["is_broadcast"]
+        packet_info["timestamp"] = json_content["timestamp"]
+
+        payload = {"alarm_type": "p2ptest_send_info", "packet": packet_info}
+
+        return True, json.dumps(payload)
+
+    def p2ptest_recv_info(self, content: str):
+        '''
+        {
+            "category": "p2ptest",
+            "tag": "vhostrecv_info",
+            "type": "real_time",
+            "content": {
+                "src_node_id": "2e4ffffff7e74b68.0698b35e1a699d2d",
+                "dst_node_id": "5dcfffff30c8f53c.24452e92cefe04e7",
+                "hop_num": 1,
+                "msg_hash": 2303518191,
+                "msg_size": 0,
+                "is_root": 1,
+                "is_broadcast": 1,
+                "packet_size": 280,
+                "timestamp": 1638785164584
+            }
+        }
+        '''
+        json_content = json.loads(content)
+        rate_num = 2**dw_config['p2p_sample_rate_level']-1
+        if(json_content["msg_hash"] & rate_num) != rate_num:
+            return False,{}
+        packet_info = {}
+        packet_info["src_node_id"] = json_content["src_node_id"]
+        packet_info["dst_node_id"] = json_content["dst_node_id"]
+        packet_info["hop_num"] = json_content["hop_num"]
+        packet_info["msg_hash"] = json_content["msg_hash"]
+        packet_info["msg_size"] = json_content["msg_size"]
+        packet_info["is_root"] = json_content["is_root"]
+        packet_info["is_broadcast"] = json_content["is_broadcast"]
+        packet_info["packet_size"] = json_content["packet_size"]
+        packet_info["timestamp"] = json_content["timestamp"]
+
+        payload = {"alarm_type": "p2ptest_recv_info", "packet": packet_info}
+
+        return True, json.dumps(payload)
+
+
     def p2pkadinfo_rule(self, content: str):
         '''
         "content": {
