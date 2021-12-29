@@ -68,7 +68,7 @@ class CallBackHub():
 
         json_content = json.loads(content)
         rate_num = 2**dw_config['p2p_sample_rate_level']-1
-        if(json_content["msg_hash"] & rate_num) != rate_num:
+        if(int(json_content["msg_hash"]) & rate_num) != rate_num:
             return False,{}
         packet_info = {}
         packet_info["src_node_id"] = json_content["src_node_id"]
@@ -105,7 +105,7 @@ class CallBackHub():
         '''
         json_content = json.loads(content)
         rate_num = 2**dw_config['p2p_sample_rate_level']-1
-        if(json_content["msg_hash"] & rate_num) != rate_num:
+        if(int(json_content["msg_hash"]) & rate_num) != rate_num:
             return False,{}
         packet_info = {}
         packet_info["src_node_id"] = json_content["src_node_id"]
@@ -142,7 +142,7 @@ class CallBackHub():
         '''
         json_content = json.loads(content)
         rate_num = 2**dw_config['p2p_sample_rate_level']-1
-        if(json_content["msg_hash"] & rate_num) != rate_num:
+        if(int(json_content["msg_hash"]) & rate_num) != rate_num:
             return False,{}
         packet_info = {}
         packet_info["src_node_id"] = json_content["src_node_id"]
