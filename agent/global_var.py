@@ -62,6 +62,9 @@ def get_local_ip():
 my_ip = get_local_ip()
 
 
+def set_public_ip(local_ip):
+    global my_ip
+    my_ip = local_ip
 
 def get_ip():
     global my_ip

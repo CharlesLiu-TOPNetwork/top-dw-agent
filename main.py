@@ -18,7 +18,8 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--file', help="log file for agent to watch, eg: ./xtop.log", default='/chain/log/xtop.log')
     parser.add_argument('-d', '--database', help="set this environment name, which decide to store in which database", default='test_database_name')
     parser.add_argument('-p', '--port', help="set this port of monitor comunication, which will be added to public_ip:public_port", default='9000')
-    parser.add_argument('--split', action='store_true',  help='agent will auto split database by add date-suffix, deafalut false')
+    parser.add_argument('--split', action='store_true',  help='agent will auto split database by add date-suffix, default false')
+    parser.add_argument('--local', action='store_true',  help='agent will use local ip (used when depoly in local net) default false')
     parser.add_argument('--nodaemon', action='store_true', help='start as no-daemon mode')
     args = parser.parse_args()
 

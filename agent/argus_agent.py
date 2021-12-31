@@ -44,6 +44,31 @@ my_root_id = ''
 
 spilt_database = False
 
+
+def update_public_ip():
+    global alarm_proxy_host
+    url = 'http://' + alarm_proxy_host
+    url = urljoin(url, '/api/ip/')
+    my_headers = {
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36',
+        'Content-Type': 'application/json;charset=UTF-8',
+    }
+    try:
+        res = requests.get(url, headers=my_headers, timeout=5)
+        if res.status_code == 200:
+            if res.json().get('status') == 0:
+                slog.info(
+                    "get remote config ok, response: {0}".format(res.text))
+                self_public_ip = res.json().get('ip')
+                gl.set_public_ip(self_public_ip)
+                return True
+    except Exception as e:
+        slog.warn("exception: {0}".format(e))
+        return False
+    slog.info("get_self_ip failed")
+    return False
+
+
 def update_config_from_remote():
     global alarm_database_name, alarm_proxy_host 
     url = 'http://' + alarm_proxy_host
@@ -211,8 +236,6 @@ class Log_Filter:
                             put_alarmq_high(payload_alarm)
 
                     metrics_info = {
-                        # 'env': alarm_database_name,
-                        # 'public_ip': gl.get_ip(),
                         'send_timestamp': int(int(time.time())/300)*300,
                         'category': category,
                         'tag': tag,
@@ -515,6 +538,11 @@ def run(args):
         alarm_database_name = alarm_database_name[0:25] + '__' + alarm_database_name[-25:]
     alarm_proxy_host = args.alarm
     alarm_filename = args.file
+
+    if not args.local:
+        update_public_ip()
+    
+    slog.info("global ip: {0}".format(gl.get_ip()))
 
     start_print = 'agent start... database:{0} monitor port:{1} host:{2} file:{3}\n'.format(
         alarm_database_name, mypublic_port, alarm_proxy_host, alarm_filename)
