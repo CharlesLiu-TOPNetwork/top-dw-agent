@@ -294,6 +294,10 @@ class CallBackHub():
         json_content = json.loads(content)
         sync_mod = json_content["mode"]
         table_address = json_content["table_address"]
+        if sync_mod != "full" or sync_mod != "fast":
+            return False, {}
+        if not sync_mod or not table_address:
+            return False, {}
         '''
         {
             "mode": "full",
