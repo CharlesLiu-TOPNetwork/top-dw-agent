@@ -44,6 +44,33 @@ my_root_id = ''
 
 spilt_database = False
 
+# xmetric.2022-01-23-185855-25-2964.log
+
+
+def clean_expire_log(alarm_file_name: str):
+    if re.findall(r'(.*)xmetric.log', alarm_file_name):
+        path = re.findall(r'(.*)xmetric.log', alarm_file_name)[0]
+        slog.info("monitor log path: {0}".format(path))
+        while True:
+            for root, directories, files in os.walk(path, topdown=False):
+                today = datetime.datetime.today()  # gets current time
+                for name in files:
+                    if re.findall(r'xmetric.\d{4}-\d{2}-\d{2}-\d{6}(.*).log', name):
+                        # print("find ", name)
+                        # this is the last modified time
+                        # os.stat_result(st_mode=33204, st_ino=269189391, st_dev=64768, st_nlink=1, st_uid=1000, st_gid=1000, st_size=701, st_atime=1642996876, st_mtime=1642996876, st_ctime=1642996876)
+                        t = os.stat(os.path.join(root, name))[8]
+                        filetime = datetime.datetime.fromtimestamp(t) - today
+                        #checking if file is more than 7 days old
+                        #or not if yes then remove them
+                        if filetime.days <= -5:
+                            # print(os.path.join(root, name), filetime.days)
+                            slog.info("delete old log file: {0} {1}".format(
+                                os.path.join(root, name), filetime.days))
+                            os.remove(os.path.join(root, name))
+            time.sleep(5*60*60)
+    else:
+        slog.info("fail to find correct dir! check -f file name!")
 
 def update_public_ip():
     global alarm_proxy_host
@@ -575,6 +602,15 @@ def run(args):
     update_config_th.daemon = True
     update_config_th.start()
     slog.info('start update config from remote thread')
+
+    if args.nocleanlog:
+        slog.warn("will not clean log")
+    else:
+        clean_log_th = threading.Thread(
+            target=clean_expire_log, args=(alarm_filename,))
+        clean_log_th.daemon = True
+        clean_log_th.start()
+        slog.info('start clean expire log thread')
 
     watchlog_th = threading.Thread(
         target=log_m.run_watch, args=(alarm_filename, ))
