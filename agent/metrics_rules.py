@@ -393,6 +393,29 @@ class CallBackHub():
         json_content["send_timestamp"] = int(int(time.time())/self.txpool_interval)*self.txpool_interval
         payload = {"alarm_type":"txpool_cache","packet":json_content}
         return True,json.dumps(payload)
+    
+    def relayer_gas_rule(self,content:str):
+        '''
+        {
+            "category": "TOP-relayer",
+            "tag": "gas",
+            "type": "realtime",
+            "content": {
+                "count": 58,
+                "value": 8000,
+                "detail": "0xadaa9182fd481c6ed4c4b5cc91881067a36af1c357613f0b48bd0f94e495926c"
+            }
+        }
+        '''
+        json_content = json.loads(content)
+        json_content["send_timestamp"] = int(time.time())
+        # packet_info = {}
+        # packet_info["count"] = json_content["count"]
+        # packet_info["amount"] = json_content["amount"]
+        # packet_info["detail"] = json_content["detail"]
+        # packet_info["send_timestamp"] = int(time.time())
+        payload = {"alarm_type":"relayer_gas","packet":json_content}
+        return True,json.dumps(payload)
 
     def default_metrics_rule(self, content: str):
         # slog.info("default")

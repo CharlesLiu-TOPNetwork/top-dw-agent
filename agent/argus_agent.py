@@ -330,6 +330,12 @@ class log_monitor:
                 "receipt_delay": self.callbackhub.txpool_receipt_delay_rule,
                 "cache": self.callbackhub.txpool_cache_rule,
             },
+            "TOP-relayer": {
+                "gas": self.callbackhub.relayer_gas_rule,
+            },
+            "ETH-relayer": {
+                "gas": self.callbackhub.relayer_gas_rule,
+            },
         }
         self.log_filter = Log_Filter(metrics_rule_map)
 
