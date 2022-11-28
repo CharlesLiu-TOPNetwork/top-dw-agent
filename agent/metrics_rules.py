@@ -286,6 +286,10 @@ class CallBackHub():
         packet_info["archive"] = json_content["archive"]
         packet_info["edge"] = json_content["edge"]
         packet_info["fullnode"] = json_content["fullnode"] if "fullnode" in json_content else 0
+        packet_info["evm_auditor"] = json_content["evm_auditor"] if "evm_auditor" in json_content else 0
+        packet_info["evm_validator"] = json_content["evm_validator"] if "evm_validator" in json_content else 0
+        packet_info["relay"] = json_content["relay"] if "relay" in json_content else 0
+
         payload = {"alarm_type":"vnode_status","packet":packet_info}
 
         return True,json.dumps(payload)
